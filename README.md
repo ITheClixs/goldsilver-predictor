@@ -1,4 +1,4 @@
-# Gold & Silver Price Prediction Web Application
+# Introducing Gold & Silver Price Predictor 
 ![Gold & Silver Predictor UI](images/Screenshot%202025-08-26%20at%2001.06.52.png)
 
 ## Overview
