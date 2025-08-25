@@ -132,18 +132,25 @@ class LSTMModel:
         print("Preparing LSTM data...")
         
         # Select features for LSTM (price + key indicators)
-        feature_cols = ['price']
+        feature_cols = [
+            'price', 'volume', 'high', 'low', 'open', 'usd_index', 'returns', 
+            'sma_7', 'sma_14', 'sma_30', 'sma_200', 'ema_12', 'ema_26', 'rsi', 
+            'macd', 'macd_signal', 'macd_histogram', 'bb_upper', 'bb_middle', 
+            'bb_lower', 'bb_width', 'bb_position', 'volatility_20', 'volatility_60', 
+            'momentum_10', 'momentum_20', 'price_sma7_ratio', 'price_sma30_ratio', 
+            'price_sma200_ratio', 'volume_sma_20', 'volume_ratio', 'usd_sma_20', 
+            'usd_momentum', 'price_usd_ratio', 'price_lag1', 'price_lag2', 'price_lag3', 
+            'returns_lag1', 'returns_lag2', 'returns_lag3', 'rsi_lag1', 'rsi_lag2', 
+            'rsi_lag3', 'macd_lag1', 'macd_lag2', 'macd_lag3'
+        ]
         
-        # Add important technical indicators if available
-        optional_cols = ['sma_30', 'rsi', 'macd', 'volatility_20']
-        for col in optional_cols:
-            if col in df.columns:
-                feature_cols.append(col)
+        # Filter for columns that are actually in the dataframe
+        available_features = [col for col in feature_cols if col in df.columns]
         
-        print(f"Using features: {feature_cols}")
+        print(f"Using {len(available_features)} features: {available_features}")
         
         # Extract features
-        data = df[feature_cols].values
+        data = df[available_features].values
         
         # Scale the data
         scaled_data = self.scaler.fit_transform(data)
