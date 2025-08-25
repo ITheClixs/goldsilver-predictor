@@ -365,7 +365,7 @@ class LSTMModel:
 
         try:
             if _HAS_TORCH:
-                checkpoint = torch.load(filepath, map_location=self.device)
+                checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
             else:
                 checkpoint = joblib.load(filepath)
             
