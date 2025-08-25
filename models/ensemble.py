@@ -73,7 +73,7 @@ class EnsemblePredictor:
             
             # Check if data is recent (within last 7 days)
             if df is not None and not df.empty:
-                last_date = pd.to_datetime(df.index[-1])
+                last_date = pd.to_datetime(df.index[-1]).tz_localize(None)
                 days_old = (pd.Timestamp.now().tz_localize(None) - last_date).days
                 
                 if days_old <= 7:
