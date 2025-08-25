@@ -16,301 +16,254 @@
                 <h1 class="text-center mb-0">
                     <i class="fas fa-chart-line"></i>
                     Gold & Silver Price Forecasting
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Gold & Silver Price Forecasting</title>
-                    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-                    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-                    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
-                </head>
-                <body>
-                    <div class="container-fluid">
-                        <!-- Header -->
-                        <div class="row bg-dark text-white py-3">
-                            <div class="col-12">
-                                <h1 class="text-center mb-0">
-                                    <i class="fas fa-chart-line"></i>
-                                    Gold & Silver Price Forecasting
-                                </h1>
-                                <p class="text-center mb-0 text-muted">AI-Powered Precious Metal Trading Signals</p>
-                            </div>
-                        </div>
+                </h1>
+                <p class="text-center mb-0 text-muted">AI-Powered Precious Metal Trading Signals</p>
+            </div>
+        </div>
 
-                        <!-- Current Prices Section -->
-                        <div class="row py-4 bg-light">
-                            <div class="col-md-6 text-center">
-                                <div class="price-card gold-card">
-                                    <i class="fas fa-coins fa-3x mb-3 text-warning"></i>
-                                    <h3>Gold (GC=F)</h3>
-                                    <div class="price-display">
-                                        $<span id="gold-price">{{ gold_price if gold_price != "N/A" else "Loading..." }}</span>
-                                    </div>
-                                    <small class="text-muted">per troy ounce</small>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-center">
-                                <div class="price-card silver-card">
-                                    <i class="fas fa-gem fa-3x mb-3 text-secondary"></i>
-                                    <h3>Silver (SI=F)</h3>
-                                    <div class="price-display">
-                                        $<span id="silver-price">{{ silver_price if silver_price != "N/A" else "Loading..." }}</span>
-                                    </div>
-                                    <small class="text-muted">per troy ounce</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Prediction Form -->
-                        <div class="row py-5">
-                            <div class="col-lg-8 mx-auto">
-                                <div class="card shadow-lg">
-                                    <div class="card-header bg-primary text-white">
-                                        <h4 class="mb-0">
-                                            <i class="fas fa-crystal-ball"></i>
-                                            Price Forecast & Trading Signal
-                                        </h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <form id="prediction-form">
-                                            <div class="row">
-                                                <div class="col-md-6 mb-3">
-                                                    <label for="commodity" class="form-label">Select Commodity</label>
-                                                    <select class="form-select" id="commodity" name="commodity" required>
-                                                        <option value="">Choose commodity...</option>
-                                                        <option value="gold">Gold (GC=F)</option>
-                                                        <option value="silver">Silver (SI=F)</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-6 mb-3">
-                                                    <label for="horizon" class="form-label">Forecast Horizon (days)</label>
-                                                    <input type="number" class="form-control" id="horizon" name="horizon" 
-                                                           min="1" max="30" value="7" required>
-                                                    <div class="form-text">Enter a value between 1 and 30 days</div>
-                                                </div>
-                                            </div>
-                            
-                                            <div class="text-center">
-                                                <button type="submit" class="btn btn-primary btn-lg px-5">
-                                                    <i class="fas fa-magic"></i>
-                                                    Generate Forecast
-                                                </button>
-                                            </div>
-                                        </form>
-
-                                        <!-- Loading Spinner -->
-                                        <div id="loading" class="text-center mt-4" style="display: none;">
-                                            <div class="spinner-border text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                            <p class="mt-2">Training models and generating forecast...</p>
-                                            <small class="text-muted">This may take up to 2 minutes for the first prediction</small>
-                                        </div>
-
-                                        <!-- Results Section -->
-                                        <div id="results" class="mt-5" style="display: none;">
-                                            <div class="card">
-                                                <div class="card-header">
-                                                    <h5 class="mb-0">Prediction Results</h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <h6>Current Price</h6>
-                                                            <p class="fs-4" id="current-price-result">$0.00</p>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <h6>Predicted Price</h6>
-                                                            <p class="fs-4" id="predicted-price-result">$0.00</p>
-                                                        </div>
-                                                    </div>
-                                    
-                                                    <div class="row mt-3">
-                                                        <div class="col-md-6">
-                                                            <h6>Expected Change</h6>
-                                                            <p class="fs-4" id="return-result">0.00%</p>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <h6>Trading Signal</h6>
-                                                            <span class="badge fs-5 px-3 py-2" id="signal-badge">HOLD</span>
-                                                        </div>
-                                                    </div>
-                                    
-                                                    <div class="mt-4 p-3 bg-light rounded">
-                                                        <h6>Forecast Summary</h6>
-                                                        <p id="forecast-summary" class="mb-0">
-                                                            <!-- Summary will be generated by JavaScript -->
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Error Message -->
-                                        <div id="error-message" class="alert alert-danger mt-4" style="display: none;">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                            <span id="error-text">An error occurred while generating the forecast.</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Model Information -->
-                        <div class="row py-4 bg-light">
-                            <div class="col-lg-10 mx-auto">
-                                <div class="row">
-                                    <div class="col-md-4 text-center mb-4">
-                                        <div class="feature-card">
-                                            <i class="fas fa-brain fa-3x text-primary mb-3"></i>
-                                            <h5>LSTM Neural Network</h5>
-                                            <p>Deep learning model that captures sequential patterns in price movements and market trends.</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-center mb-4">
-                                        <div class="feature-card">
-                                            <i class="fas fa-tree fa-3x text-success mb-3"></i>
-                                            <h5>XGBoost Ensemble</h5>
-                                            <p>Gradient boosting model using technical indicators like RSI, MACD, and moving averages.</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-center mb-4">
-                                        <div class="feature-card">
-                                            <i class="fas fa-balance-scale fa-3x text-warning mb-3"></i>
-                                            <h5>Ensemble Averaging</h5>
-                                            <p>Combines predictions from both models to provide more accurate and stable forecasts.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Controls -->
-                        <div class="row py-3">
-                            <div class="col-12 text-center">
-                                <button class="btn btn-outline-secondary btn-sm" onclick="retrainModels()">
-                                    <i class="fas fa-sync"></i>
-                                    Retrain Models
-                                </button>
-                                <button class="btn btn-outline-info btn-sm ms-2" onclick="refreshPrices()">
-                                    <i class="fas fa-refresh"></i>
-                                    Refresh Prices
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Footer -->
-                        <footer class="row bg-dark text-white text-center py-3 mt-5">
-                            <div class="col-12">
-                                <p class="mb-1">
-                                    <i class="fas fa-exclamation-triangle text-warning"></i>
-                                    <strong>Disclaimer:</strong> This is for educational purposes only. Not financial advice.
-                                </p>
-                                <p class="mb-0 small text-muted">
-                                    Always consult with a qualified financial advisor before making investment decisions.
-                                </p>
-                            </div>
-                        </footer>
+        <!-- Current Prices Section -->
+        <div class="row py-4 bg-light">
+            <div class="col-md-6 text-center">
+                <div class="price-card gold-card">
+                    <i class="fas fa-coins fa-3x mb-3 text-warning"></i>
+                    <h3>Gold (GC=F)</h3>
+                    <div class="price-display">
+                        $<span id="gold-price">{{ gold_price if gold_price != "N/A" else "Loading..." }}</span>
                     </div>
+                    <small class="text-muted">per troy ounce</small>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="price-card silver-card">
+                    <i class="fas fa-gem fa-3x mb-3 text-secondary"></i>
+                    <h3>Silver (SI=F)</h3>
+                    <div class="price-display">
+                        $<span id="silver-price">{{ silver_price if silver_price != "N/A" else "Loading..." }}</span>
+                    </div>
+                    <small class="text-muted">per troy ounce</small>
+                </div>
+            </div>
+        </div>
 
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-                    <script src="{{ url_for('static', filename='script.js') }}"></script>
-                    <script>
-                        // Form submission handler
-                        document.getElementById('prediction-form').addEventListener('submit', async function(e) {
-                            e.preventDefault();
+        <!-- Prediction Form -->
+        <div class="row py-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-crystal-ball"></i>
+                            Price Forecast & Trading Signal
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="prediction-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="commodity" class="form-label">Select Commodity</label>
+                                    <select class="form-select" id="commodity" name="commodity" required>
+                                        <option value="">Choose commodity...</option>
+                                        <option value="gold">Gold (GC=F)</option>
+                                        <option value="silver">Silver (SI=F)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="horizon" class="form-label">Forecast Horizon (days)</label>
+                                    <input type="number" class="form-control" id="horizon" name="horizon" 
+                                           min="1" max="30" value="7" required>
+                                    <div class="form-text">Enter a value between 1 and 30 days</div>
+                                </div>
+                            </div>
             
-                            const commodity = document.getElementById('commodity').value;
-                            const horizon = document.getElementById('horizon').value;
-            
-                            if (!commodity) {
-                                showError('Please select a commodity');
-                                return;
-                            }
-            
-                            // Show loading
-                            document.getElementById('loading').style.display = 'block';
-                            document.getElementById('results').style.display = 'none';
-                            document.getElementById('error-message').style.display = 'none';
-            
-                            try {
-                                const formData = new FormData();
-                                formData.append('commodity', commodity);
-                                formData.append('horizon', horizon);
-                
-                                const response = await fetch('/predict', {
-                                    method: 'POST',
-                                    body: formData
-                                });
-                
-                                const data = await response.json();
-                
-                                if (data.success) {
-                                    showResults(data);
-                                } else {
-                                    showError(data.error || 'Prediction failed');
-                                }
-                            } catch (error) {
-                                showError('Network error: ' + error.message);
-                            } finally {
-                                document.getElementById('loading').style.display = 'none';
-                            }
-                        });
-        
-                        function showResults(data) {
-                            // Update result fields
-                            document.getElementById('current-price-result').textContent = `$${data.current_price}/gram`;
-                            document.getElementById('predicted-price-result').textContent = `$${data.predicted_price}/gram`;
-                            document.getElementById('return-result').textContent = `${data.return_pct > 0 ? '+' : ''}${data.return_pct}%`;
-            
-                            // Update signal badge
-                            const signalBadge = document.getElementById('signal-badge');
-                            signalBadge.textContent = data.signal;
-                            signalBadge.style.backgroundColor = data.signal_color;
-            
-                            // Generate forecast summary
-                            const summary = `Our AI ensemble predicts that ${data.commodity} will ${data.return_pct > 0 ? 'increase' : 'decrease'} by ${Math.abs(data.return_pct)}% over the next ${data.horizon} day${data.horizon > 1 ? 's' : ''}, reaching $${data.predicted_price} per gram. Based on this forecast, our recommendation is to ${data.signal.toLowerCase()} ${data.commodity}.`;
-            
-                            document.getElementById('forecast-summary').textContent = summary;
-                            document.getElementById('results').style.display = 'block';
-                        }
-        
-                        function showError(message) {
-                            document.getElementById('error-text').textContent = message;
-                            document.getElementById('error-message').style.display = 'block';
-                        }
-        
-                        async function retrainModels() {
-                            const commodity = document.getElementById('commodity').value || 'gold';
-            
-                            if (confirm('This will retrain the models with the latest data. This process may take several minutes. Continue?')) {
-                                const formData = new FormData();
-                                formData.append('commodity', commodity);
-                
-                                try {
-                                    const response = await fetch('/retrain', {
-                                        method: 'POST',
-                                        body: formData
-                                    });
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    <i class="fas fa-magic"></i>
+                                    Generate Forecast
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Loading Spinner -->
+                        <div id="loading" class="text-center mt-4" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Training models and generating forecast...</p>
+                            <small class="text-muted">This may take up to 2 minutes for the first prediction</small>
+                        </div>
+
+                        <!-- Results Section -->
+                        <div id="results" class="mt-5" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Prediction Results</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Current Price</h6>
+                                            <p class="fs-4" id="current-price-result">$0.00</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Predicted Price</h6>
+                                            <p class="fs-4" id="predicted-price-result">$0.00</p>
+                                        </div>
+                                    </div>
                     
-                                    const data = await response.json();
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <h6>Expected Change</h6>
+                                            <p class="fs-4" id="return-result">0.00%</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Trading Signal</h6>
+                                            <span class="badge fs-5 px-3 py-2" id="signal-badge">HOLD</span>
+                                        </div>
+                                    </div>
                     
-                                    if (data.success) {
-                                        alert('Models retrained successfully!');
-                                    } else {
-                                        alert('Retraining failed: ' + data.message);
-                                    }
-                                } catch (error) {
-                                    alert('Network error: ' + error.message);
-                                }
-                            }
-                        }
-        
-                        function refreshPrices() {
-                            location.reload();
-                        }
-                    </script>
-                </body>
-                </html>
+                                    <div class="mt-4 p-3 bg-light rounded">
+                                        <h6>Forecast Summary</h6>
+                                        <p id="forecast-summary" class="mb-0">
+                                            <!-- Summary will be generated by JavaScript -->
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div id="error-message" class="alert alert-danger mt-4" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="error-text">An error occurred while generating the forecast.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Controls -->
+        <div class="row py-3">
+            <div class="col-12 text-center">
+                <button class="btn btn-outline-secondary btn-sm" onclick="retrainModels()">
+                    <i class="fas fa-sync"></i>
+                    Retrain Models
+                </button>
+                <button class="btn btn-outline-info btn-sm ms-2" onclick="refreshPrices()">
+                    <i class="fas fa-refresh"></i>
+                    Refresh Prices
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="row bg-dark text-white text-center py-3 mt-5">
+            <div class="col-12">
+                <p class="mb-1">
+                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                    <strong>Disclaimer:</strong> This is for educational purposes only. Not financial advice.
+                </p>
+                <p class="mb-0 small text-muted">
+                    Always consult with a qualified financial advisor before making investment decisions.
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Form submission handler
+        document.getElementById('prediction-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const commodity = document.getElementById('commodity').value;
+            const horizon = document.getElementById('horizon').value;
+
+            if (!commodity) {
+                showError('Please select a commodity');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('commodity', commodity);
+                formData.append('horizon', horizon);
+
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    showError(data.error || 'Prediction failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        function showResults(data) {
+            // Update result fields
+            document.getElementById('current-price-result').textContent = `$${data.current_price}/gram`;
+            document.getElementById('predicted-price-result').textContent = `$${data.predicted_price}/gram`;
+            document.getElementById('return-result').textContent = `${data.return_pct > 0 ? '+' : ''}${data.return_pct}%`;
+
+            // Update signal badge
+            const signalBadge = document.getElementById('signal-badge');
+            signalBadge.textContent = data.signal;
+            signalBadge.style.backgroundColor = data.signal_color;
+
+            // Generate forecast summary
+            const summary = `Our AI ensemble predicts that ${data.commodity} will ${data.return_pct > 0 ? 'increase' : 'decrease'} by ${Math.abs(data.return_pct)}% over the next ${data.horizon} day${data.horizon > 1 ? 's' : ''}, reaching $${data.predicted_price} per gram. Based on this forecast, our recommendation is to ${data.signal.toLowerCase()} ${data.commodity}.`;
+
+            document.getElementById('forecast-summary').textContent = summary;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('error-text').textContent = message;
+            document.getElementById('error-message').style.display = 'block';
+        }
+
+        async function retrainModels() {
+            const commodity = document.getElementById('commodity').value || 'gold';
+
+            if (confirm('This will retrain the models with the latest data. This process may take several minutes. Continue?')) {
+                const formData = new FormData();
+                formData.append('commodity', commodity);
+
+                try {
+                    const response = await fetch('/retrain', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Models retrained successfully!');
+                    } else {
+                        alert('Retraining failed: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('Network error: ' + error.message);
+                }
+            }
+        }
+
+        function refreshPrices() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -76,9 +76,12 @@ def predict():
                 return jsonify({'error': 'Failed to train prediction models'})
         
         # Make prediction
+        print(f"Attempting prediction for {commodity} with horizon {horizon}...")
         predicted_price = predictor.predict(commodity, horizon)
+        print(f"Predicted price from predictor: {predicted_price}")
         
         if predicted_price is None:
+            print("Prediction returned None.")
             return jsonify({'error': 'Prediction failed'})
         
         # Calculate return and trading signal
