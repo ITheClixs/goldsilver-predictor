@@ -162,7 +162,7 @@ class PredictionModel:
 class LSTMPredictor(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers):
         super(LSTMPredictor, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
         self.linear = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
