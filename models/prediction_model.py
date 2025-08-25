@@ -149,7 +149,7 @@ class PredictionModel:
 
     def load_model(self, commodity):
         filepath = f'models/{commodity}_lstm_returns.pth'
-        checkpoint = torch.load(filepath)
+        checkpoint = torch.load(filepath, weights_only=False)
         self.scalers[commodity] = checkpoint['scaler']
         
         input_size = self.scalers[commodity].scale_.shape[0]
