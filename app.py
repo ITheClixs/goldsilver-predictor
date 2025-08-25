@@ -10,11 +10,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from data.fetch_data import get_current_price
 from models.prediction_model import PredictionModel
+from models.silver_prediction_model import SilverPredictionModel
 
 app = Flask(__name__)
 
-# Global predictor instance
-predictor = PredictionModel()
+# Global predictor instances
+gold_predictor = PredictionModel()
+silver_predictor = SilverPredictionModel()
 
 def get_trading_signal(return_pct):
     """Convert return percentage to trading signal"""
@@ -67,10 +69,13 @@ def predict():
         if current_price == "N/A":
             return jsonify({'error': 'Unable to fetch current price'})
         
-        # The new model does not need explicit training from the app
-        
-        # Make prediction
-        predicted_price = predictor.predict(commodity, horizon)
+        # Use the appropriate predictor
+        if commodity == 'gold':
+            predicted_price = gold_predictor.predict(commodity, horizon)
+        elif commodity == 'silver':
+            predicted_price = silver_predictor.predict(commodity, horizon)
+        else:
+            return jsonify({'error': 'Invalid commodity selected'})
         
         if predicted_price is None:
             return jsonify({'error': 'Prediction failed'})
