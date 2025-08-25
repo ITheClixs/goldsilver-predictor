@@ -10,6 +10,7 @@ from data.indicators import calculate_indicators
 class SilverPredictionModel:
     def __init__(self, sequence_length=45, hidden_size=75, num_layers=2, 
                  learning_rate=0.001, num_epochs=120):
+        self.commodity = 'silver'
         self.sequence_length = sequence_length
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -48,15 +49,15 @@ class SilverPredictionModel:
         X, y = self.create_sequences(scaled_data)
         return X, y, scaler, available_features
 
-    def train(self, commodity='silver', force_retrain=False):
+    def train(self, force_retrain=False):
         from data.fetch_data import prepare_dataset
         
-        model_path = f'models/{commodity}_lstm_returns.pth'
+        model_path = f'models/{self.commodity}_lstm_returns.pth'
         if os.path.exists(model_path) and not force_retrain:
-            self.load_model(commodity)
+            self.load_model()
             return True
 
-        df = prepare_dataset(commodity)
+        df = prepare_dataset(self.commodity)
         df_with_indicators = calculate_indicators(df)
         
         X, y, scaler, feature_cols = self.prepare_data(df_with_indicators)
@@ -83,20 +84,20 @@ class SilverPredictionModel:
                 print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}')
         
         self.model = model
-        self.save_model(commodity)
+        self.save_model()
         self.is_trained = True
         return True
 
-    def predict(self, commodity='silver', horizon=1):
+    def predict(self, horizon=1):
         from data.fetch_data import prepare_dataset
 
         if not self.is_trained:
-            self.train(commodity)
+            self.train()
 
         model = self.model
         scaler = self.scaler
 
-        df = prepare_dataset(commodity)
+        df = prepare_dataset(self.commodity)
         df_with_indicators = calculate_indicators(df)
         
         df_with_indicators['returns'] = df_with_indicators['price'].pct_change()
@@ -139,8 +140,8 @@ class SilverPredictionModel:
             
         return predicted_price
 
-    def save_model(self, commodity):
-        filepath = f'models/{commodity}_lstm_returns.pth'
+    def save_model(self):
+        filepath = f'models/{self.commodity}_lstm_returns.pth'
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         checkpoint = {
             'model_state_dict': self.model.state_dict(),
@@ -148,8 +149,8 @@ class SilverPredictionModel:
         }
         torch.save(checkpoint, filepath)
 
-    def load_model(self, commodity):
-        filepath = f'models/{commodity}_lstm_returns.pth'
+    def load_model(self):
+        filepath = f'models/{self.commodity}_lstm_returns.pth'
         checkpoint = torch.load(filepath, weights_only=False)
         self.scaler = checkpoint['scaler']
         
