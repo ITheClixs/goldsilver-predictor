@@ -50,17 +50,20 @@ Make sure you are using **Python 3.9 or later**.
  ## Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/gold-silver-prediction.git
    cd gold-silver-prediction
 
 2. **Set up a virtual environment (recommended)**
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate   # On macOS/Linux
    venv\Scripts\activate      # On Windows
 
 3. **Install dependencies**
+
    ```bash
    pip install -r requirements.txt
 
@@ -96,3 +99,6 @@ Strong Sell: Expected decrease > -2%
    
 
    
+## Screenshot
+
+![Gold & Silver Predictor UI](images/Screenshot%202025-08-26%20at%2001.06.52.png)
