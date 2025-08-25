@@ -71,7 +71,7 @@ def predict():
         
         # Use the appropriate predictor
         if commodity == 'gold':
-            predicted_price = gold_predictor.predict(horizon)
+            predicted_price = gold_predictor.predict(commodity, horizon)
         elif commodity == 'silver':
             predicted_price = silver_predictor.predict(horizon)
         else:
