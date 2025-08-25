@@ -94,8 +94,8 @@ else:
             return np.zeros((1,1))
 
 class LSTMModel:
-    def __init__(self, sequence_length=30, hidden_size=50, num_layers=2, 
-                 learning_rate=0.001, num_epochs=100):
+    def __init__(self, sequence_length=60, hidden_size=100, num_layers=2, 
+                 learning_rate=0.001, num_epochs=150):
         self.sequence_length = sequence_length
         self.hidden_size = hidden_size
         self.num_layers = num_layers
