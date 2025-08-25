@@ -42,7 +42,7 @@ if MinMaxScaler is None:
 
 if _HAS_TORCH:
     class LSTMPredictor(nn.Module):
-        def __init__(self, input_size=1, hidden_size=100, num_layers=2, dropout=0.3, output_size=30):
+        def __init__(self, input_size=1, hidden_size=50, num_layers=1, dropout=0.2, output_size=30):
             super(LSTMPredictor, self).__init__()
             
             self.hidden_size = hidden_size
@@ -57,16 +57,8 @@ if _HAS_TORCH:
                 batch_first=True
             )
             
-            # Batch normalization
-            self.batch_norm = nn.BatchNorm1d(hidden_size)
-            
             # Fully connected layers
-            self.fc = nn.Sequential(
-                nn.Linear(hidden_size, hidden_size // 2),
-                nn.ReLU(),
-                nn.Dropout(dropout),
-                nn.Linear(hidden_size // 2, output_size)
-            )
+            self.fc = nn.Linear(hidden_size, output_size)
             
         def forward(self, x):
             # Initialize hidden state
@@ -76,11 +68,8 @@ if _HAS_TORCH:
             # LSTM forward pass
             out, _ = self.lstm(x, (h0, c0))
             
-            # Take the last output and apply batch norm
-            out = self.batch_norm(out[:, -1, :])
-            
-            # Fully connected layers
-            out = self.fc(out)
+            # Take the last output
+            out = self.fc(out[:, -1, :])
             
             return out
 else:
@@ -92,8 +81,8 @@ else:
             return np.zeros((1,1))
 
 class LSTMModel:
-    def __init__(self, sequence_length=60, hidden_size=100, num_layers=2, 
-                 learning_rate=0.001, num_epochs=150, output_size=30):
+    def __init__(self, sequence_length=60, hidden_size=50, num_layers=1, 
+                 learning_rate=0.001, num_epochs=100, output_size=30):
         self.sequence_length = sequence_length
         self.hidden_size = hidden_size
         self.num_layers = num_layers
