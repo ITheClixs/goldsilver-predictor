@@ -234,7 +234,7 @@ class EnsemblePredictor:
                 ensemble_pred = np.average(predictions, weights=weights_normalized)
                 print(f"Ensemble prediction (LSTM: {lstm_pred:.2f}, XGB: {xgb_pred:.2f}): {ensemble_pred:.2f}")
             
-            return ensemble_pred
+            return float(ensemble_pred)
             
         except Exception as e:
             print(f"Ensemble prediction failed: {e}")
