@@ -71,9 +71,9 @@ def predict():
         
         # Use the appropriate predictor
         if commodity == 'gold':
-            predicted_price = gold_predictor.predict(commodity, horizon)
+            predicted_price = gold_predictor.predict(horizon)
         elif commodity == 'silver':
-            predicted_price = silver_predictor.predict(commodity, horizon)
+            predicted_price = silver_predictor.predict(horizon)
         else:
             return jsonify({'error': 'Invalid commodity selected'})
         
