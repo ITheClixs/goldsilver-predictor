@@ -20,7 +20,7 @@ predictor = EnsemblePredictor()
 def get_trading_signal(return_pct):
     """Convert return percentage to trading signal"""
     if return_pct > 3.0:
-        return "STRONG BUY", "#28a745"
+        return "STRONG BUY", "#23ac43"
     elif return_pct > 1.0:
         return "BUY", "#20c997" 
     elif return_pct >= -1.0:
