@@ -1,4 +1,5 @@
 # Gold & Silver Price Prediction Web Application
+Screenshot 2025-08-26 at 01.06.52.png
 
 ## Overview
 This project is a Flask-based web application that predicts the future prices of gold and silver (per gram in USD) for the next 1–30 days.  
