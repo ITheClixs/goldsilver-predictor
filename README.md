@@ -1,1 +1,58 @@
-# Gold-Silver-Predictor
+# Gold & Silver Price Prediction Web Application
+
+## Overview
+This project is a Flask-based web application that predicts the future prices of gold and silver (per gram in USD) for the next 1–30 days.  
+It uses machine learning models trained on historical price data and technical indicators to forecast price movements.  
+Additionally, the app provides trading signals (Strong Buy, Buy, Hold, Sell, Strong Sell) for each prediction horizon.
+
+The app runs locally on `localhost` when executed, making it suitable for personal use and experimentation.
+
+---
+
+## Features
+- Predict gold and silver prices for 1–30 days ahead.
+- Display forecasted price for a specific day (e.g., "12 days later").
+- Generate trading signals (buy/sell/hold).
+- Fetch real-time gold and silver data from Yahoo Finance.
+- Visualize predictions with plots.
+- Simple web interface powered by Flask.
+
+---
+
+## Tech Stack
+- **Backend**: Flask (Python web framework).
+- **Machine Learning**: PyTorch, XGBoost, scikit-learn.
+- **Data Handling**: Pandas, NumPy, joblib.
+- **Data Source**: Yahoo Finance (via `yfinance`).
+- **Visualization**: Matplotlib, Plotly.
+- **HTTP Requests**: Requests library.
+
+---
+
+## Dependencies
+The project uses the following Python libraries:
+flask==2.3.3
+pandas==2.0.3
+numpy==1.24.3
+torch==2.0.1
+scikit-learn==1.3.0
+xgboost==1.7.6
+yfinance==0.2.21
+requests==2.31.0
+joblib==1.3.2
+matplotlib==3.7.2
+plotly==5.15.0
+
+Make sure you are using **Python 3.9 or later**.
+
+---
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/gold-silver-prediction.git
+   cd gold-silver-prediction
+
+2. **Set up a virtual environment (recommended)**
+   ```bash
