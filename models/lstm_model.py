@@ -41,7 +41,7 @@ if MinMaxScaler is None:
 
 if _HAS_TORCH:
     class LSTMPredictor(nn.Module):
-        def __init__(self, input_size=1, hidden_size=50, num_layers=2, dropout=0.2):
+        def __init__(self, input_size=1, hidden_size=100, num_layers=2, dropout=0.3):
             super(LSTMPredictor, self).__init__()
             
             self.hidden_size = hidden_size
@@ -56,24 +56,33 @@ if _HAS_TORCH:
                 batch_first=True
             )
             
+            # Batch normalization
+            self.batch_norm = nn.BatchNorm1d(hidden_size)
+            
             # Fully connected layers
             self.fc = nn.Sequential(
                 nn.Linear(hidden_size, hidden_size // 2),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(hidden_size // 2, 1)
+                nn.Linear(hidden_size // 2, hidden_size // 4),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_size // 4, 1)
             )
             
         def forward(self, x):
             # Initialize hidden state
-            h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)
-            c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)
+            h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+            c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
             
             # LSTM forward pass
             out, _ = self.lstm(x, (h0, c0))
             
-            # Take the last output
-            out = self.fc(out[:, -1, :])
+            # Take the last output and apply batch norm
+            out = self.batch_norm(out[:, -1, :])
+            
+            # Fully connected layers
+            out = self.fc(out)
             
             return out
 else:
