@@ -20,6 +20,7 @@ except Exception:
         return np.mean(np.abs(np.array(a) - np.array(b)))
 
 import joblib
+from data.indicators import calculate_indicators
 
 # Fallback simple scaler if sklearn not available
 if MinMaxScaler is None:
