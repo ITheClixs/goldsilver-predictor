@@ -281,62 +281,58 @@ class LSTMModel:
             print("Model not trained")
             return None
 
-        # If torch not available, return last price as naive prediction
-        if not _HAS_TORCH:
-            try:
-                return float(df['price'].iloc[-1])
-            except Exception:
-                return None
-
         try:
             # Get the last sequence
-            feature_cols = ['price']
-            optional_cols = ['sma_30', 'rsi', 'macd', 'volatility_20']
-            for col in optional_cols:
-                if col in df.columns:
-                    feature_cols.append(col)
-            
-            # Get last sequence_length points
-            last_data = df[feature_cols].tail(self.sequence_length).values
-            last_scaled = self.scaler.transform(last_data)
+            feature_cols = [
+                'price', 'volume', 'high', 'low', 'open', 'usd_index', 'returns', 
+                'sma_7', 'sma_14', 'sma_30', 'sma_200', 'ema_12', 'ema_26', 'rsi', 
+                'macd', 'macd_signal', 'macd_histogram', 'bb_upper', 'bb_middle', 
+                'bb_lower', 'bb_width', 'bb_position', 'volatility_20', 'volatility_60', 
+                'momentum_10', 'momentum_20', 'price_sma7_ratio', 'price_sma30_ratio', 
+                'price_sma200_ratio', 'volume_sma_20', 'volume_ratio', 'usd_sma_20', 
+                'usd_momentum', 'price_usd_ratio', 'price_lag1', 'price_lag2', 'price_lag3', 
+                'returns_lag1', 'returns_lag2', 'returns_lag3', 'rsi_lag1', 'rsi_lag2', 
+                'rsi_lag3', 'macd_lag1', 'macd_lag2', 'macd_lag3'
+            ]
+            available_features = [col for col in feature_cols if col in df.columns]
             
             self.model.eval()
-            predictions = []
             
-            # Predict iteratively for the horizon
-            current_sequence = last_scaled.copy()
+            # Use a copy of the original dataframe to append new predictions
+            df_history = df.copy()
             
             for _ in range(horizon):
+                # Get last sequence_length points
+                last_data = df_history[available_features].tail(self.sequence_length).values
+                last_scaled = self.scaler.transform(last_data)
+
                 # Prepare input
-                X_input = torch.FloatTensor(current_sequence.reshape(1, self.sequence_length, -1)).to(self.device)
+                X_input = torch.FloatTensor(last_scaled.reshape(1, self.sequence_length, -1)).to(self.device)
                 
                 # Make prediction
-                if _HAS_TORCH:
-                    with torch.no_grad():
-                        pred_scaled = self.model(X_input).cpu().numpy().flatten()
-                else:
-                    pred_scaled = np.zeros(1)
+                with torch.no_grad():
+                    pred_scaled = self.model(X_input).cpu().numpy().flatten()
                 
-                # Create next input by shifting sequence
-                next_point = np.zeros(current_sequence.shape[1])
-                next_point[0] = pred_scaled[0]  # Price prediction
+                # Inverse transform the predicted price
+                dummy_data = np.zeros((1, len(available_features)))
+                dummy_data[0, 0] = pred_scaled[0]
+                pred_unscaled = self.scaler.inverse_transform(dummy_data)[0, 0]
+
+                # Append the new prediction to the history
+                last_date = df_history.index[-1]
+                new_date = last_date + pd.Timedelta(days=1)
                 
-                # For other features, use last known values (simple approach)
-                if current_sequence.shape[1] > 1:
-                    next_point[1:] = current_sequence[-1, 1:]
-                
-                # Update sequence
-                current_sequence = np.vstack([current_sequence[1:], next_point.reshape(1, -1)])
-                predictions.append(pred_scaled[0])
-            
-            # Inverse transform the final prediction
-            # Create dummy array for inverse transform
-            dummy_data = np.zeros((1, len(feature_cols)))
-            dummy_data[0, 0] = predictions[-1]  # Put prediction in price column
-            
-            # Inverse transform
-            pred_unscaled = self.scaler.inverse_transform(dummy_data)[0, 0]
-            
+                new_row_data = {'price': pred_unscaled}
+                for col in df_history.columns:
+                    if col != 'price':
+                        new_row_data[col] = df_history[col].iloc[-1] # Use last known value
+
+                new_row = pd.DataFrame(new_row_data, index=[new_date])
+                df_history = pd.concat([df_history, new_row])
+
+                # Recalculate indicators
+                df_history = calculate_indicators(df_history)
+
             return pred_unscaled
             
         except Exception as e:
