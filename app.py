@@ -8,14 +8,13 @@ import sys
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from data.fetch_data import get_current_price, fetch_historical_data
-from data.indicators import calculate_indicators
-from models.ensemble import EnsemblePredictor
+from data.fetch_data import get_current_price
+from models.prediction_model import PredictionModel
 
 app = Flask(__name__)
 
 # Global predictor instance
-predictor = EnsemblePredictor()
+predictor = PredictionModel()
 
 def get_trading_signal(return_pct):
     """Convert return percentage to trading signal"""
@@ -68,20 +67,12 @@ def predict():
         if current_price == "N/A":
             return jsonify({'error': 'Unable to fetch current price'})
         
-        # Ensure models are trained
-        if not predictor.is_trained():
-            print("Training models...")
-            success = predictor.train_models(commodity)
-            if not success:
-                return jsonify({'error': 'Failed to train prediction models'})
+        # The new model does not need explicit training from the app
         
         # Make prediction
-        print(f"Attempting prediction for {commodity} with horizon {horizon}...")
         predicted_price = predictor.predict(commodity, horizon)
-        print(f"Predicted price from predictor: {predicted_price}")
         
         if predicted_price is None:
-            print("Prediction returned None.")
             return jsonify({'error': 'Prediction failed'})
         
         # Calculate return and trading signal
@@ -108,21 +99,6 @@ def predict():
     except Exception as e:
         print(f"Prediction error: {e}")
         return jsonify({'error': f'Prediction failed: {str(e)}'})
-
-@app.route('/retrain', methods=['POST'])
-def retrain():
-    """Retrain models with latest data"""
-    try:
-        commodity = request.form.get('commodity', 'gold')
-        success = predictor.train_models(commodity, force_retrain=True)
-        
-        if success:
-            return jsonify({'success': True, 'message': 'Models retrained successfully'})
-        else:
-            return jsonify({'success': False, 'message': 'Failed to retrain models'})
-            
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Retraining failed: {str(e)}'})
 
 if __name__ == '__main__':
     # Create directories if they don't exist
