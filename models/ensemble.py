@@ -255,4 +255,164 @@ class EnsemblePredictor:
             return details
             
         except Exception as e:
-            print(f"Failed to get prediction details:
+            print(f"Failed to get prediction details: {e}")
+            return None
+    
+    def update_weights(self, lstm_weight=0.4, xgb_weight=0.6):
+        """Update ensemble weights"""
+        total = lstm_weight + xgb_weight
+        self.weights = {
+            'lstm': lstm_weight / total,
+            'xgb': xgb_weight / total
+        }
+        print(f"Updated weights: LSTM={self.weights['lstm']:.2f}, XGBoost={self.weights['xgb']:.2f}")
+    
+    def evaluate_models(self, commodity='gold', test_days=30):
+        """Evaluate model performance on recent data"""
+        try:
+            df = self.prepare_training_data(commodity)
+            if df is None or len(df) < test_days + 10:
+                print("Insufficient data for evaluation")
+                return None
+            
+            # Use last test_days as test set
+            train_df = df.iloc[:-test_days]
+            test_df = df.iloc[-test_days-10:]  # Include some overlap for sequence models
+            
+            # Retrain on training data
+            temp_lstm = LSTMModel(sequence_length=30, num_epochs=50)
+            temp_xgb = XGBoostModel()
+            
+            lstm_trained = temp_lstm.train(train_df)
+            xgb_trained = temp_xgb.train(train_df, horizon=1)
+            
+            if not (lstm_trained or xgb_trained):
+                print("Failed to train models for evaluation")
+                return None
+            
+            # Make predictions
+            predictions = []
+            actuals = []
+            
+            for i in range(len(test_df) - 10):
+                current_data = test_df.iloc[:i+10]  # Use data up to current point
+                actual = test_df.iloc[i+10]['price']
+                
+                preds = []
+                weights = []
+                
+                if lstm_trained:
+                    lstm_pred = temp_lstm.predict(current_data, horizon=1)
+                    if lstm_pred is not None:
+                        preds.append(lstm_pred)
+                        weights.append(self.weights['lstm'])
+                
+                if xgb_trained:
+                    xgb_pred = temp_xgb.predict(current_data, horizon=1)
+                    if xgb_pred is not None:
+                        preds.append(xgb_pred)
+                        weights.append(self.weights['xgb'])
+                
+                if preds:
+                    if len(preds) == 1:
+                        ensemble_pred = preds[0]
+                    else:
+                        weights_norm = np.array(weights) / sum(weights)
+                        ensemble_pred = np.average(preds, weights=weights_norm)
+                    
+                    predictions.append(ensemble_pred)
+                    actuals.append(actual)
+            
+            if not predictions:
+                print("No predictions made during evaluation")
+                return None
+            
+            # Calculate metrics
+            predictions = np.array(predictions)
+            actuals = np.array(actuals)
+            
+            mse = np.mean((predictions - actuals) ** 2)
+            rmse = np.sqrt(mse)
+            mae = np.mean(np.abs(predictions - actuals))
+            mape = np.mean(np.abs((predictions - actuals) / actuals)) * 100
+            
+            # Direction accuracy
+            pred_direction = np.diff(predictions) > 0
+            actual_direction = np.diff(actuals) > 0
+            direction_accuracy = np.mean(pred_direction == actual_direction) * 100
+            
+            evaluation = {
+                'test_samples': len(predictions),
+                'rmse': rmse,
+                'mae': mae,
+                'mape': mape,
+                'direction_accuracy': direction_accuracy,
+                'mean_actual': np.mean(actuals),
+                'mean_predicted': np.mean(predictions)
+            }
+            
+            print(f"\nModel Evaluation Results ({test_days} days):")
+            print(f"RMSE: {rmse:.4f}")
+            print(f"MAE: {mae:.4f}")
+            print(f"MAPE: {mape:.2f}%")
+            print(f"Direction Accuracy: {direction_accuracy:.2f}%")
+            
+            return evaluation
+            
+        except Exception as e:
+            print(f"Model evaluation failed: {e}")
+            return None
+
+if __name__ == "__main__":
+    # Test ensemble predictor
+    print("Testing Ensemble Predictor...")
+    
+    predictor = EnsemblePredictor()
+    
+    # Test with gold
+    print("\n" + "="*60)
+    print("Testing Gold Prediction")
+    print("="*60)
+    
+    success = predictor.train_models('gold')
+    if success:
+        print("✓ Training successful!")
+        
+        # Test prediction
+        for horizon in [1, 5, 10]:
+            prediction = predictor.predict('gold', horizon=horizon)
+            if prediction:
+                print(f"✓ {horizon}-day prediction: ${prediction:.2f}")
+        
+        # Get detailed prediction
+        details = predictor.get_prediction_details('gold', horizon=7)
+        if details:
+            print(f"\nDetailed 7-day prediction:")
+            print(f"Current Price: ${details['current_price']:.2f}")
+            if details['lstm_prediction']:
+                print(f"LSTM: ${details['lstm_prediction']:.2f}")
+            if details['xgb_prediction']:
+                print(f"XGBoost: ${details['xgb_prediction']:.2f}")
+            print(f"Ensemble: ${details['ensemble_prediction']:.2f}")
+        
+        # Evaluate models
+        print("\nEvaluating model performance...")
+        evaluation = predictor.evaluate_models('gold', test_days=20)
+        
+    else:
+        print("✗ Training failed!")
+    
+    # Test with silver
+    print("\n" + "="*60)
+    print("Testing Silver Prediction")
+    print("="*60)
+    
+    success = predictor.train_models('silver')
+    if success:
+        print("✓ Silver training successful!")
+        
+        prediction = predictor.predict('silver', horizon=5)
+        if prediction:
+            print(f"✓ 5-day silver prediction: ${prediction:.2f}")
+    else:
+        print("✗ Silver training failed!")
