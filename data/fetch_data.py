@@ -1,3 +1,4 @@
+// Placeholder for static/script.js
 import pandas as pd
 import numpy as np
 import yfinance as yf
