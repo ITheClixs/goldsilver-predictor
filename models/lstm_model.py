@@ -304,6 +304,11 @@ class LSTMModel:
             for _ in range(horizon):
                 # Get last sequence_length points
                 last_data = df_history[available_features].tail(self.sequence_length).values
+                
+                # Check for NaN in last_data and fill them
+                if np.isnan(last_data).any():
+                    last_data = pd.DataFrame(last_data).fillna(method='ffill').values
+
                 last_scaled = self.scaler.transform(last_data)
 
                 # Prepare input
@@ -332,6 +337,7 @@ class LSTMModel:
 
                 # Recalculate indicators
                 df_history = calculate_indicators(df_history)
+                df_history = df_history.fillna(method='ffill') # Fill NaNs after calculating indicators
 
             return pred_unscaled
             
