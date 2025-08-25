@@ -42,7 +42,7 @@ if MinMaxScaler is None:
 
 if _HAS_TORCH:
     class LSTMPredictor(nn.Module):
-        def __init__(self, input_size=1, hidden_size=100, num_layers=2, dropout=0.3):
+        def __init__(self, input_size=1, hidden_size=100, num_layers=2, dropout=0.3, output_size=30):
             super(LSTMPredictor, self).__init__()
             
             self.hidden_size = hidden_size
@@ -65,10 +65,7 @@ if _HAS_TORCH:
                 nn.Linear(hidden_size, hidden_size // 2),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(hidden_size // 2, hidden_size // 4),
-                nn.ReLU(),
-                nn.Dropout(dropout),
-                nn.Linear(hidden_size // 4, 1)
+                nn.Linear(hidden_size // 2, output_size)
             )
             
         def forward(self, x):
@@ -96,12 +93,13 @@ else:
 
 class LSTMModel:
     def __init__(self, sequence_length=60, hidden_size=100, num_layers=2, 
-                 learning_rate=0.001, num_epochs=150):
+                 learning_rate=0.001, num_epochs=150, output_size=30):
         self.sequence_length = sequence_length
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
+        self.output_size = output_size
         
         self.model = None
         self.scaler = MinMaxScaler(feature_range=(0, 1))
@@ -114,17 +112,13 @@ class LSTMModel:
         else:
             self.device = None
     
-    def create_sequences(self, data, target_col='price'):
+    def create_sequences(self, data):
         """Create sequences for LSTM training"""
         X, y = [], []
         
-        for i in range(self.sequence_length, len(data)):
-            # Use multiple features if available
-            if len(data.shape) > 1:
-                X.append(data[i-self.sequence_length:i])
-            else:
-                X.append(data[i-self.sequence_length:i].reshape(-1, 1))
-            y.append(data[i] if len(data.shape) == 1 else data[i, 0])
+        for i in range(len(data) - self.sequence_length - self.output_size + 1):
+            X.append(data[i:i+self.sequence_length])
+            y.append(data[i+self.sequence_length:i+self.sequence_length+self.output_size, 0])
         
         return np.array(X), np.array(y)
     
@@ -164,7 +158,6 @@ class LSTMModel:
     
     def train(self, df):
         """Train the LSTM model"""
-        # If torch not available, skip heavy training and mark as trained (placeholder)
         if not _HAS_TORCH:
             print("Torch not available — skipping LSTM training (placeholder). Marking as trained.")
             self.is_trained = True
@@ -196,7 +189,8 @@ class LSTMModel:
             self.model = LSTMPredictor(
                 input_size=input_size,
                 hidden_size=self.hidden_size,
-                num_layers=self.num_layers
+                num_layers=self.num_layers,
+                output_size=self.output_size
             )
             if _HAS_TORCH and hasattr(self.model, 'to') and self.device is not None:
                 self.model = self.model.to(self.device)
@@ -218,7 +212,7 @@ class LSTMModel:
                 
                 # Forward pass
                 outputs = self.model(X_train)
-                loss = criterion(outputs.squeeze(), y_train)
+                loss = criterion(outputs, y_train)
                 
                 # Backward pass
                 if _HAS_TORCH and optimizer is not None:
@@ -231,7 +225,7 @@ class LSTMModel:
                 if _HAS_TORCH:
                     with torch.no_grad():
                         val_outputs = self.model(X_test)
-                        val_loss = criterion(val_outputs.squeeze(), y_test)
+                        val_loss = criterion(val_outputs, y_test)
                 else:
                     val_loss = loss
                 
@@ -249,23 +243,6 @@ class LSTMModel:
                     print(f'Epoch [{epoch}/{self.num_epochs}], '
                           f'Train Loss: {loss.item():.6f}, '
                           f'Val Loss: {val_loss.item():.6f}')
-            
-            # Calculate final metrics
-            # Compute final metrics (best-effort without torch)
-            if _HAS_TORCH:
-                self.model.eval()
-                with torch.no_grad():
-                    train_pred = self.model(X_train).cpu().numpy()
-                    test_pred = self.model(X_test).cpu().numpy()
-            else:
-                train_pred = np.zeros(len(y_train))
-                test_pred = np.zeros(len(y_test))
-                
-                train_rmse = np.sqrt(mean_squared_error(y_train.cpu().numpy(), train_pred.flatten()))
-                test_rmse = np.sqrt(mean_squared_error(y_test.cpu().numpy(), test_pred.flatten()))
-                
-                print(f"Training RMSE: {train_rmse:.6f}")
-                print(f"Testing RMSE: {test_rmse:.6f}")
             
             self.is_trained = True
             print("LSTM training completed successfully!")
@@ -296,49 +273,24 @@ class LSTMModel:
             ]
             available_features = [col for col in feature_cols if col in df.columns]
             
+            # Get last sequence_length points
+            last_data = df[available_features].tail(self.sequence_length).values
+            last_scaled = self.scaler.transform(last_data)
+            
             self.model.eval()
             
-            # Use a copy of the original dataframe to append new predictions
-            df_history = df.copy()
+            # Prepare input
+            X_input = torch.FloatTensor(last_scaled.reshape(1, self.sequence_length, -1)).to(self.device)
             
-            for _ in range(horizon):
-                # Get last sequence_length points
-                last_data = df_history[available_features].tail(self.sequence_length).values
-                
-                # Check for NaN in last_data and fill them
-                if np.isnan(last_data).any():
-                    last_data = pd.DataFrame(last_data).fillna(method='ffill').values
-
-                last_scaled = self.scaler.transform(last_data)
-
-                # Prepare input
-                X_input = torch.FloatTensor(last_scaled.reshape(1, self.sequence_length, -1)).to(self.device)
-                
-                # Make prediction
-                with torch.no_grad():
-                    pred_scaled = self.model(X_input).cpu().numpy().flatten()
-                
-                # Inverse transform the predicted price
-                dummy_data = np.zeros((1, len(available_features)))
-                dummy_data[0, 0] = pred_scaled[0]
-                pred_unscaled = self.scaler.inverse_transform(dummy_data)[0, 0]
-
-                # Append the new prediction to the history
-                last_date = df_history.index[-1]
-                new_date = last_date + pd.Timedelta(days=1)
-                
-                new_row_data = {'price': pred_unscaled}
-                for col in df_history.columns:
-                    if col != 'price':
-                        new_row_data[col] = df_history[col].iloc[-1] # Use last known value
-
-                new_row = pd.DataFrame(new_row_data, index=[new_date])
-                df_history = pd.concat([df_history, new_row])
-
-                # Recalculate indicators
-                df_history = calculate_indicators(df_history)
-                df_history = df_history.fillna(method='ffill') # Fill NaNs after calculating indicators
-
+            # Make prediction
+            with torch.no_grad():
+                pred_scaled = self.model(X_input).cpu().numpy().flatten()
+            
+            # Inverse transform the prediction for the requested horizon
+            dummy_data = np.zeros((1, len(available_features)))
+            dummy_data[0, 0] = pred_scaled[horizon-1]
+            pred_unscaled = self.scaler.inverse_transform(dummy_data)[0, 0]
+            
             return pred_unscaled
             
         except Exception as e:
@@ -362,6 +314,7 @@ class LSTMModel:
                 'sequence_length': self.sequence_length,
                 'hidden_size': self.hidden_size,
                 'num_layers': self.num_layers,
+                'output_size': self.output_size,
                 'is_trained': self.is_trained
             }
             
@@ -392,6 +345,7 @@ class LSTMModel:
             self.sequence_length = checkpoint['sequence_length']
             self.hidden_size = checkpoint['hidden_size']
             self.num_layers = checkpoint['num_layers']
+            self.output_size = checkpoint.get('output_size', 30) # For backward compatibility
             self.scaler = checkpoint['scaler']
             self.is_trained = checkpoint['is_trained']
             
@@ -400,7 +354,8 @@ class LSTMModel:
             self.model = LSTMPredictor(
                 input_size=input_size,
                 hidden_size=self.hidden_size,
-                num_layers=self.num_layers
+                num_layers=self.num_layers,
+                output_size=self.output_size
             )
             
             self.model.load_state_dict(checkpoint['model_state_dict'])
@@ -431,7 +386,7 @@ if __name__ == "__main__":
     }, index=dates).dropna()
     
     # Initialize and train model
-    lstm_model = LSTMModel(sequence_length=30, num_epochs=50)
+    lstm_model = LSTMModel(sequence_length=30, num_epochs=50, output_size=30)
     
     success = lstm_model.train(df_test)
     if success:
