@@ -113,7 +113,7 @@ class XGBoostModel:
             self.model.fit(
                 X_train_scaled, y_train,
                 eval_set=[(X_test_scaled, y_test)],
-                early_stopping_rounds=20,
+                callbacks=[xgb.callback.EarlyStopping(rounds=20)],
                 verbose=False
             )
             
