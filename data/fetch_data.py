@@ -207,8 +207,8 @@ def load_data(filename):
     """Load DataFrame from CSV"""
     try:
         df = pd.read_csv(filename, index_col=0, parse_dates=True)
-        df.index = pd.to_datetime(df.index)
-        df.index = df.index.tz_localize(None)
+        df.index = pd.to_datetime(df.index, utc=True)
+        df.index = df.index.tz_convert(None)
         print(f"Data loaded from {filename}")
         return df
     except Exception as e:
