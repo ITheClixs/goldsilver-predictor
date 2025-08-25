@@ -16,9 +16,8 @@ class PredictionModel:
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
         
-        self.model = None
-        self.scaler = MinMaxScaler(feature_range=(-1, 1))
-        self.is_trained = False
+        self.models = {}
+        self.scalers = {}
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def create_sequences(self, data):
@@ -32,41 +31,49 @@ class PredictionModel:
         df['returns'] = df['price'].pct_change()
         df = df.dropna()
 
-        # We will use only returns and a few other key indicators
-        feature_cols = ['returns', 'sma_7', 'rsi', 'macd', 'volatility_20']
+        # Using a wider range of indicators
+        feature_cols = [
+            'returns', 'sma_7', 'sma_30', 'rsi', 'macd', 'bb_width', 'volatility_20',
+            'momentum_10', 'price_sma7_ratio', 'price_sma30_ratio', 'volume_ratio',
+            'usd_momentum', 'price_usd_ratio'
+        ]
         available_features = [col for col in feature_cols if col in df.columns]
         
         data = df[available_features].values
-        scaled_data = self.scaler.fit_transform(data)
+        
+        # We will create a new scaler for each commodity
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        scaled_data = scaler.fit_transform(data)
         
         X, y = self.create_sequences(scaled_data)
-        return X, y
+        return X, y, scaler, available_features
 
     def train(self, commodity='gold', force_retrain=False):
         from data.fetch_data import prepare_dataset
         
         model_path = f'models/{commodity}_lstm_returns.pth'
         if os.path.exists(model_path) and not force_retrain:
-            self.load_model(model_path)
+            self.load_model(commodity)
             return True
 
         df = prepare_dataset(commodity)
         df_with_indicators = calculate_indicators(df)
         
-        X, y = self.prepare_data(df_with_indicators)
+        X, y, scaler, feature_cols = self.prepare_data(df_with_indicators)
+        self.scalers[commodity] = scaler
         
         X_train = torch.FloatTensor(X).to(self.device)
         y_train = torch.FloatTensor(y).to(self.device)
 
-        self.model = LSTMPredictor(input_size=X.shape[2], hidden_size=self.hidden_size, num_layers=self.num_layers)
-        self.model.to(self.device)
+        model = LSTMPredictor(input_size=X.shape[2], hidden_size=self.hidden_size, num_layers=self.num_layers)
+        model.to(self.device)
         
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
 
         for epoch in range(self.num_epochs):
-            self.model.train()
-            outputs = self.model(X_train)
+            model.train()
+            outputs = model(X_train)
             optimizer.zero_grad()
             loss = criterion(outputs.squeeze(), y_train)
             loss.backward()
@@ -75,15 +82,18 @@ class PredictionModel:
             if (epoch + 1) % 10 == 0:
                 print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}')
         
-        self.save_model(model_path)
-        self.is_trained = True
+        self.models[commodity] = model
+        self.save_model(commodity)
         return True
 
     def predict(self, commodity='gold', horizon=1):
         from data.fetch_data import prepare_dataset
 
-        if not self.is_trained:
+        if commodity not in self.models:
             self.train(commodity)
+
+        model = self.models[commodity]
+        scaler = self.scalers[commodity]
 
         df = prepare_dataset(commodity)
         df_with_indicators = calculate_indicators(df)
@@ -91,13 +101,17 @@ class PredictionModel:
         df_with_indicators['returns'] = df_with_indicators['price'].pct_change()
         df_with_indicators = df_with_indicators.dropna()
 
-        feature_cols = ['returns', 'sma_7', 'rsi', 'macd', 'volatility_20']
+        feature_cols = [
+            'returns', 'sma_7', 'sma_30', 'rsi', 'macd', 'bb_width', 'volatility_20',
+            'momentum_10', 'price_sma7_ratio', 'price_sma30_ratio', 'volume_ratio',
+            'usd_momentum', 'price_usd_ratio'
+        ]
         available_features = [col for col in feature_cols if col in df_with_indicators.columns]
         
         last_data = df_with_indicators[available_features].tail(self.sequence_length).values
-        last_data_scaled = self.scaler.transform(last_data)
+        last_data_scaled = scaler.transform(last_data)
         
-        self.model.eval()
+        model.eval()
         
         predicted_returns = []
         current_price = df_with_indicators['price'].iloc[-1]
@@ -105,48 +119,45 @@ class PredictionModel:
         with torch.no_grad():
             for _ in range(horizon):
                 X_input = torch.FloatTensor(last_data_scaled.reshape(1, self.sequence_length, -1)).to(self.device)
-                predicted_return_scaled = self.model(X_input).cpu().numpy().flatten()
+                predicted_return_scaled = model(X_input).cpu().numpy().flatten()
                 
-                # Inverse transform the return
                 dummy_data = np.zeros((1, len(available_features)))
                 dummy_data[0, 0] = predicted_return_scaled[0]
-                predicted_return = self.scaler.inverse_transform(dummy_data)[0, 0]
+                predicted_return = scaler.inverse_transform(dummy_data)[0, 0]
                 
                 predicted_returns.append(predicted_return)
                 
-                # Update the last_data with the new predicted return for the next prediction
-                # This is a simplification, as we are not recalculating the other indicators
                 new_row = last_data[-1, :].copy()
                 new_row[0] = predicted_return
                 last_data = np.vstack([last_data[1:], new_row])
-                last_data_scaled = self.scaler.transform(last_data)
+                last_data_scaled = scaler.transform(last_data)
 
-        # Apply the predicted returns to the last known price
         predicted_price = current_price
         for r in predicted_returns:
             predicted_price = predicted_price * (1 + r)
             
         return predicted_price
 
-    def save_model(self, filepath):
+    def save_model(self, commodity):
+        filepath = f'models/{commodity}_lstm_returns.pth'
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         checkpoint = {
-            'model_state_dict': self.model.state_dict(),
-            'scaler': self.scaler,
+            'model_state_dict': self.models[commodity].state_dict(),
+            'scaler': self.scalers[commodity],
         }
         torch.save(checkpoint, filepath)
 
-    def load_model(self, filepath):
+    def load_model(self, commodity):
+        filepath = f'models/{commodity}_lstm_returns.pth'
         checkpoint = torch.load(filepath)
-        self.scaler = checkpoint['scaler']
+        self.scalers[commodity] = checkpoint['scaler']
         
-        # Get input_size from scaler
-        input_size = self.scaler.scale_.shape[0]
+        input_size = self.scalers[commodity].scale_.shape[0]
         
-        self.model = LSTMPredictor(input_size=input_size, hidden_size=self.hidden_size, num_layers=self.num_layers)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.model.to(self.device)
-        self.is_trained = True
+        model = LSTMPredictor(input_size=input_size, hidden_size=self.hidden_size, num_layers=self.num_layers)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(self.device)
+        self.models[commodity] = model
 
 class LSTMPredictor(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers):
