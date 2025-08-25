@@ -1,10 +1,13 @@
 import pandas as pd
-from transformers import pipeline
+import numpy as np
+import torch
+from transformers import AutoModelForTimeSeriesForecasting
 from data.fetch_data import prepare_dataset
 
 class PredictionModel:
-    def __init__(self, model="huggingface/time-series-transformer-tourism-monthly"):
-        self.pipe = pipeline("time-series-forecasting", model=model)
+    def __init__(self, model_name="huggingface/time-series-transformer-tourism-monthly"):
+        self.model_name = model_name
+        self.model = AutoModelForTimeSeriesForecasting.from_pretrained(self.model_name)
         self.is_trained = False
 
     def train(self, commodity='gold', force_retrain=False):
@@ -24,16 +27,24 @@ class PredictionModel:
             if df is None:
                 return None
             
-            # The pipeline expects a pandas DataFrame with a DatetimeIndex.
-            # The target column should be named 'target'.
-            df = df.rename(columns={'price': 'target'})
+            # The time-series transformer model works best on the raw price series.
+            time_series = df['price'].tolist()
             
-            # The pipeline will make predictions for `prediction_length` steps.
-            forecast = self.pipe(df, prediction_length=horizon)
+            # The model expects the data as a tensor of past values.
+            context_length = self.model.config.context_length
+            past_values = torch.tensor(time_series[-context_length:]).unsqueeze(0)
+
+            # Generate the forecast
+            forecast = self.model.generate(
+                past_values=past_values,
+                prediction_length=horizon,
+                num_beams=5,
+                early_stopping=True
+            )
             
-            # The output is a list of dictionaries, each with a 'mean' value.
-            # We will take the last prediction.
-            predicted_price = forecast[-1]['mean']
+            # The output is a sequence of predicted values.
+            # We will take the prediction for the requested horizon.
+            predicted_price = forecast[0, -1].item()
 
             return predicted_price
 
