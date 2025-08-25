@@ -129,6 +129,6 @@ if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
     
     print("Starting Gold & Silver Price Forecasting App...")
-    print("Visit http://localhost:5000 to use the application")
+    print("Visit http://localhost:5001 to use the application")
     
-    app.run(debug=True, host='localhost', port=5000)
+    app.run(debug=True, host='localhost', port=5001)
