@@ -47,7 +47,7 @@ Make sure you are using **Python 3.9 or later**.
 
 ---
 
-## Installation
+ ## Installation
 
 1. **Clone the repository**
    ```bash
@@ -56,3 +56,43 @@ Make sure you are using **Python 3.9 or later**.
 
 2. **Set up a virtual environment (recommended)**
    ```bash
+   python3 -m venv venv
+   source venv/bin/activate   # On macOS/Linux
+   venv\Scripts\activate      # On Windows
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+
+   Running the Application
+   
+Train or load the pretrained models (scripts provided in models/).
+Start the Flask server:
+python app.py
+Open your browser and go to:
+http://127.0.0.1:5000/
+Usage
+Select prediction horizon (1–30 days).
+ ## The app will display:
+ - Predicted gold/silver price in USD per gram.
+ - Suggested trading signal (Strong Buy, Buy, Hold, Sell, Strong Sell).
+ - Visualization of price trends.
+
+ ## Data Sources
+Gold price (ticker: GC=F) and Silver price (ticker: SI=F) from Yahoo Finance.
+Data is automatically fetched and updated using the yfinance library.
+
+ ## Trading Signal Logic
+Signals are generated based on predicted percentage change:
+Strong Buy: Expected increase > 2% within horizon
+Buy: Expected increase between 0.5% – 2%
+Hold: Change between -0.5% and +0.5%
+Sell: Expected decrease between -0.5% – -2%
+Strong Sell: Expected decrease > -2%
+
+
+
+
+   
+
+   
