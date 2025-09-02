@@ -1,5 +1,9 @@
-# Gold & Silver Price Prediction Web Application
-![Gold & Silver Predictor  UI](images/Screenshot202025-08-2620at2001.06.52.png)
+# Introducing Gold & Silver Price Predictor 
+## Screenshot from 26.08.2025
+![Gold & Silver Predictor UI](images/Screenshot%202025-08-26%20at%2001.06.52.png)
+## Screenshot from 02.09.2025
+![Gold & Silver Predictor UI](images/Screenshot%2025-09-02%at%23.26.17.png)
+
 ## Overview
 This project is a Flask-based web application that predicts the future prices of gold and silver (per gram in USD) for the next 1–30 days.  
 It uses machine learning models trained on historical price data and technical indicators to forecast price movements.  
@@ -102,4 +106,3 @@ Strong Sell: Expected decrease > -2%
 ## Screenshot
 
 ![Gold & Silver Predictor UI](images/Screenshot%202025-08-26%20at%2001.06.52.png)
-![Gold Price Chart](images/Screenshot%202025-09-02%20at%2023.26.17.png)
