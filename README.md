@@ -102,3 +102,4 @@ Strong Sell: Expected decrease > -2%
 ## Screenshot
 
 ![Gold & Silver Predictor UI](images/Screenshot%202025-08-26%20at%2001.06.52.png)
+![Gold Price Chart](images/Screenshot%202025-09-02%20at%2023.26.17.png)
